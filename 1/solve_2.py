@@ -8,7 +8,7 @@ def solve(parsed):
     for turn in parsed:
         increment = turn // abs(turn)
 
-        while abs(turn) > 0:
+        while turn != 0:
             turn -= increment
             position += increment
             position %= 100
