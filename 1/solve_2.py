@@ -6,11 +6,15 @@ def solve(parsed):
     zeros = 0
 
     for turn in parsed:
-        position += turn
-        position %= 100
+        increment = turn // abs(turn)
 
-        if position == 0:
-            zeros += 1
+        while abs(turn) > 0:
+            turn -= increment
+            position += increment
+            position %= 100
+
+            if position == 0:
+                zeros += 1
 
     return zeros
 
@@ -40,5 +44,5 @@ def main(filename, expected=None):
 
 
 if __name__ == "__main__":
-    main("test_0.txt", 3)
+    main("test_0.txt", 6)
     main("input.txt")
