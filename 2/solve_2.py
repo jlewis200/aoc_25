@@ -21,7 +21,16 @@ def get_invalid(rng):
 
 
 def is_invalid(value):
-    return value[: len(value) // 2] == value[len(value) // 2 :]
+    for idx in range(1, 1 + (len(value) // 2)):
+        if len(value) % idx != 0:
+            continue
+
+        expected = len(value) // idx
+
+        if value.count(value[:idx]) == expected:
+            return True
+
+    return False
 
 
 def parse(data):
@@ -51,5 +60,5 @@ def main(filename, expected=None):
 
 
 if __name__ == "__main__":
-    main("test_0.txt", 1227775554)
+    main("test_0.txt", 4174379265)
     main("input.txt")
