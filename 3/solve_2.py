@@ -7,8 +7,7 @@ def solve(parsed):
     joltages = []
 
     for battery in parsed:
-        joltage = get_max_joltage(battery)
-        joltages.append(joltage)
+        joltages.append(get_max_joltage(battery))
 
     return sum(joltages)
 
