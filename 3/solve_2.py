@@ -7,12 +7,23 @@ def solve(parsed):
     joltages = []
 
     for battery in parsed:
-        digit_0_idx = np.argmax(battery[:-1])
-        digit_1_idx = np.argmax(battery[digit_0_idx + 1 :])
-        joltage = battery[digit_0_idx] * 10 + battery[1 + digit_0_idx + digit_1_idx]
+        joltage = get_max_joltage(battery)
         joltages.append(joltage)
 
     return sum(joltages)
+
+
+def get_max_joltage(battery):
+    digits = []
+    base = 0
+
+    for idx in range(len(battery) - 11, len(battery) + 1, 1):
+        battery_slice = battery[base:idx]
+        arg_max = np.argmax(battery_slice)
+        digits.append(battery[base + arg_max])
+        base += arg_max + 1
+
+    return int("".join(map(str, digits)))
 
 
 def parse(lines):
@@ -37,5 +48,5 @@ def main(filename, expected=None):
 
 
 if __name__ == "__main__":
-    main("test_0.txt", 357)
+    main("test_0.txt", 3121910778619)
     main("input.txt")
