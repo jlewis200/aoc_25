@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# my data structures package
+# https://github.com/jlewis200/aoc_data_structures
+# https://pypi.org/project/aoc-data-structures/
 from aoc_data_structures import VectorTuple
 from aoc_data_structures.grid_helpers import parse, grid_str
 
