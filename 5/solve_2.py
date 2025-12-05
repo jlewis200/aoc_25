@@ -8,13 +8,7 @@ from aoc_data_structures import IntegerSet
 
 def solve(ranges, queries):
     integer_set = IntegerSet().union(*ranges)
-    n_fresh = 0
-
-    for query in queries:
-        if query in integer_set:
-            n_fresh += 1
-
-    return n_fresh
+    return len(integer_set)
 
 
 def parse(data):
@@ -46,5 +40,5 @@ def main(filename, expected=None):
 
 
 if __name__ == "__main__":
-    main("test_0.txt", 3)
+    main("test_0.txt", 14)
     main("input.txt")
