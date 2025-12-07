@@ -13,26 +13,32 @@ from aoc_data_structures.grid_helpers import parse
 def solve(grid):
     y, x = np.argwhere(grid == "S")[0]
     queue = deque([VectorTuple(y, x)])
+    grid_cache = np.full_like(grid, 0, dtype=int)
+    grid_cache[VectorTuple(y, x)] = 1
     visited = set()
-    splits = []
 
     while len(queue) > 0:
         coord = queue.popleft()
 
-        if coord[0] > grid.shape[0] - 1:
+        if coord[0] >= grid_cache.shape[0]:
             continue
 
-        if grid[coord] in ("S", ".") and coord not in visited:
-            queue.append(coord + VectorTuple(1, 0))
+        path_count = grid_cache[coord]
 
         if grid[coord] == "^" and coord not in visited:
-            splits.append(coord)
             queue.append(coord + VectorTuple(1, -1))
             queue.append(coord + VectorTuple(1, 1))
 
+            grid_cache[coord + VectorTuple(1, 1)] += path_count
+            grid_cache[coord + VectorTuple(1, -1)] += path_count
+
+        elif coord[0] < grid_cache.shape[0] - 1 and coord not in visited:
+            queue.append(coord + VectorTuple(1, 0))
+            grid_cache[coord + VectorTuple(1, 0)] += path_count
+
         visited.add(coord)
 
-    return len(splits)
+    return grid_cache[-1].sum()
 
 
 def read_file(filename):
@@ -48,5 +54,5 @@ def main(filename, expected=None):
 
 
 if __name__ == "__main__":
-    main("test_0.txt", None)
+    main("test_0.txt", 40)
     main("input.txt")
