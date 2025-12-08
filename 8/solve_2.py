@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import itertools
-import numpy as np
 import pandas as pd
 
 # my data structures package
@@ -10,17 +9,19 @@ import pandas as pd
 from aoc_data_structures import VectorTuple
 
 
-def solve(boxes, n):
+def solve(boxes):
     distances = get_distances(boxes)
     connected = []
 
-    for pair in distances.index[:n]:
+    for pair in distances.index:
         connected.append(set(pair))
 
-    while merge(connected):
-        pass
+        while merge(connected):
+            pass
 
-    return np.prod(sorted(map(len, connected))[-3:])
+        if len(connected) == 1 and len(connected[0]) == len(boxes):
+            box_0, box_1 = pair
+            return box_0[0] * box_1[0]
 
 
 def get_distances(boxes):
@@ -64,13 +65,13 @@ def read_file(filename):
         return f_in.readlines()
 
 
-def main(filename, expected=None, n=0):
-    result = solve(parse(read_file(filename)), n)
+def main(filename, expected=None):
+    result = solve(parse(read_file(filename)))
     print(result)
     if expected is not None:
         assert result == expected
 
 
 if __name__ == "__main__":
-    main("test_0.txt", 40, 10)
-    main("input.txt", None, 1000)
+    main("test_0.txt", 25272)
+    main("input.txt")
