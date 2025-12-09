@@ -133,19 +133,17 @@ def get_perimeter(coords):
     return modified_coords
 
 
+def sign(value):
+    if value > 0:
+        return 1
+    if value < 0:
+        return -1
+    return 0
+
+
 def get_delta(src, dst):
-    delta_y = dst[0] - src[0]
-    if delta_y > 0:
-        delta_y = 1
-    if delta_y < 0:
-        delta_y = -1
-
-    delta_x = dst[1] - src[1]
-    if delta_x > 0:
-        delta_x = 1
-    if delta_x < 0:
-        delta_x = -1
-
+    delta_y = sign(dst[0] - src[0])
+    delta_x = sign(dst[1] - src[1])
     return VectorTuple(delta_y, delta_x)
 
 
