@@ -5,19 +5,16 @@ import json
 import z3
 
 
-def get_min_presses(lights, buttons):
+def get_min_presses(joltages, buttons):
     solver = z3.Solver()
     n_presses = [z3.Int(f"p_{idx}") for idx in range(len(buttons))]
 
     for sym_var in n_presses:
         solver.add(sym_var >= 0)
 
-    for idx, light in enumerate(lights):
+    for idx, joltage in enumerate(joltages):
         applicable_buttons = get_applicable_buttons(buttons, idx)
-
-        solver.add(
-            sum([n_presses[button] for button in applicable_buttons]) % 2 == light
-        )
+        solver.add(sum([n_presses[button] for button in applicable_buttons]) == joltage)
 
     light_sum = sum(n_presses)
 
@@ -46,8 +43,8 @@ def get_applicable_buttons(buttons, light_index):
 def solve(parsed):
     n_presses = 0
 
-    for lights, buttons, _ in parsed:
-        n_presses += get_min_presses(lights, buttons)
+    for _, buttons, joltages in parsed:
+        n_presses += get_min_presses(joltages, buttons)
 
     return n_presses
 
@@ -87,5 +84,5 @@ def main(filename, expected=None):
 
 
 if __name__ == "__main__":
-    main("test_0.txt", 7)
+    main("test_0.txt", 33)
     main("input.txt")
