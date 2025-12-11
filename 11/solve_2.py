@@ -22,11 +22,7 @@ def solve(parsed):
 def get_ordered(graph, node_0, node_1):
     topo_sort = list(nx.topological_sort(graph))
     idx_0, idx_1 = topo_sort.index(node_0), topo_sort.index(node_1)
-
-    if idx_0 < idx_1:
-        return node_0, node_1
-
-    return node_1, node_0
+    return topo_sort[min(idx_0, idx_1)], topo_sort[max(idx_0, idx_1)]
 
 
 def get_n_paths(graph, src, dst):
