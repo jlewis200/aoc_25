@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 
-import re
-import math
-import itertools
-import numpy as np
 import networkx as nx
 
 
 def solve(parsed):
-    breakpoint()
+    graph = nx.DiGraph(parsed)
+    return len(list(nx.all_simple_paths(graph, "you", "out")))
 
 
 def parse(lines):
     parsed = []
 
     for line in lines:
-        parsed.append(line)  # do something more useful here
+        src, dsts = line.split(":")
+
+        for dst in dsts.split():
+            parsed.append((src, dst.strip()))
 
     return parsed
 
@@ -33,5 +33,5 @@ def main(filename, expected=None):
 
 
 if __name__ == "__main__":
-    main("test_0.txt", None)
+    main("test_0.txt", 5)
     main("input.txt")
