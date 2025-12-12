@@ -35,20 +35,6 @@ def get_distances(boxes):
     return distances
 
 
-def merge(connected):
-    for _ in connected:
-        set_0 = connected.pop(0)
-
-        for set_1 in connected:
-            if len(set_0 & set_1) > 0:
-                set_1 |= set_0
-                return True
-
-        connected.append(set_0)
-
-    return False
-
-
 def parse(lines):
     parsed = []
 
