@@ -3,6 +3,7 @@
 import itertools
 import numpy as np
 import pandas as pd
+from networkx.utils import UnionFind
 
 # my data structures package
 # https://github.com/jlewis200/aoc_data_structures
@@ -12,15 +13,12 @@ from aoc_data_structures import VectorTuple
 
 def solve(boxes, n):
     distances = get_distances(boxes)
-    connected = []
+    union_find = UnionFind(boxes)
 
     for pair in distances.index[:n]:
-        connected.append(set(pair))
+        union_find.union(*pair)
 
-    while merge(connected):
-        pass
-
-    return np.prod(sorted(map(len, connected))[-3:])
+    return np.prod(sorted(map(len, union_find.to_sets()))[-3:])
 
 
 def get_distances(boxes):
@@ -32,22 +30,7 @@ def get_distances(boxes):
         distances[(box_0, box_1)] = distance
 
     distances = pd.Series(distances)
-    distances = distances.sort_values()
-    return distances
-
-
-def merge(connected):
-    for _ in connected:
-        set_0 = connected.pop(0)
-
-        for set_1 in connected:
-            if len(set_0 & set_1) > 0:
-                set_1 |= set_0
-                return True
-
-        connected.append(set_0)
-
-    return False
+    return distances.sort_values()
 
 
 def parse(lines):
