@@ -219,11 +219,11 @@ def parse(data):
     for section in data.split("\n\n"):
         lines = section.strip().split("\n")
 
-        if "x" not in section:
-            shapes.append(parse_shape(lines))
-
         if "x" in section:
             grids = parse_grids(lines)
+
+        else:
+            shapes.append(parse_shape(lines))
 
     return np.array(shapes), grids
 
