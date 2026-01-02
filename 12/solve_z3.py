@@ -133,14 +133,16 @@ def get_relative_indices(shape, shape_indices):
     the shape indices can be:
     (0,0 and 0,1) or (1,0 and 1,1) or (0,0 and 1,0) or (0,1 and 1,1)
 
+    there are two unique permutations:
+    - horizontal
+    - vertical
+
     the shape has two coordinates, the location of the second coord can be
     specified relative to the first.
     the constraints of the shape are:
     (
-        (coord_0 == 0,0 and coord_1 == coord_0 + 0,1) or
-        (coord_0 == 0,0 and coord_1 == coord_0 + 1,0) or
-        (coord_0 == 0,1 and coord_1 == coord_0 + 1,0) or
-        (coord_0 == 1,0 and coord_1 == coord_0 + 0,1)
+        (coord_0 == base_coord and coord_1 == base_coord + 0,1) or  # horizontal
+        (coord_0 == base_coord and coord_1 == base_coord + 1,0) or  # vertical
     )
     """
     candidates = []
