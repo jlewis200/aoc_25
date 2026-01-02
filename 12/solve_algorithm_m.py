@@ -1,20 +1,7 @@
 #!/usr/bin/env python3
 
-import re
-import math
 import itertools
 import numpy as np
-import networkx as nx
-from functools import cache
-import z3
-from pprint import pprint
-from time import time_ns
-
-# my data structures package
-# https://github.com/jlewis200/aoc_data_structures
-# https://pypi.org/project/aoc-data-structures/
-from aoc_data_structures import VectorTuple, Interval
-from aoc_data_structures.grid_helpers import parse, grid_str
 from dlx.algorithm_m import AlgorithmM
 from dlx.test_algorithm_m import generate_graph
 
@@ -22,8 +9,8 @@ from dlx.test_algorithm_m import generate_graph
 def solve(shapes, grids):
     valid_grids = 0
 
-    for idx, (grid_shape, shape_counts) in enumerate(grids):
-        if pre_accept(grid_shape, shape_counts, shapes):
+    for grid_shape, shape_counts in grids:
+        if pre_accept(grid_shape, shape_counts):
             valid_grids += 1
             continue
 
@@ -35,7 +22,7 @@ def solve(shapes, grids):
     return valid_grids
 
 
-def pre_accept(grid_shape, shape_counts, shapes):
+def pre_accept(grid_shape, shape_counts):
     """
     All shapes are at most 3x3.  Accept the trivial case where each shape is
     assumed to be:
@@ -56,7 +43,7 @@ def pre_reject(grid_shape, shape_counts, shapes):
     Reject the trivial case where the total area of the shapes is greater than
     the total area of the grid.
     """
-    min_cells_required = (shapes * np.array(shape_counts).reshape(6, 1, 1)).sum()
+    min_cells_required = (shapes * np.array(shape_counts).reshape((6, 1, 1))).sum()
     return min_cells_required > np.prod(grid_shape)
 
 
