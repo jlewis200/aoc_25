@@ -1,60 +1,58 @@
 #!/usr/bin/env python3
 
 import re
-import math
 import itertools
 import numpy as np
-import networkx as nx
-from functools import cache
 import z3
-from pprint import pprint
-from time import time_ns
 
-# my data structures package
-# https://github.com/jlewis200/aoc_data_structures
-# https://pypi.org/project/aoc-data-structures/
-from aoc_data_structures import VectorTuple, Interval
-from aoc_data_structures.grid_helpers import parse, grid_str
-
-bit_size = 8
+BIT_SIZE = 8
 
 
 def solve(shapes, grids):
     valid_grids = 0
 
-    for idx, grid in enumerate(grids):
-        filter_result = pre_filter(grid, shapes)
-        if filter_result is not None:
-            valid_grids += filter_result
+    for idx, (grid_shape, shape_counts) in enumerate(grids):
+        if pre_accept(grid_shape, shape_counts, shapes):
+            valid_grids += 1
+            continue
+
+        if pre_reject(grid_shape, shape_counts, shapes):
             continue
 
         print(idx)
-        if valid_grid(grid, shapes):
+        if valid_grid(grid_shape, shape_counts, shapes):
             valid_grids += 1
+
     return valid_grids
 
 
-def pre_filter(grid, shapes):
-    grid_shape, shape_counts = grid
-    shapes = np.array(list(shapes.values()))
-    min_cells_required = (shapes * np.array(shape_counts).reshape(6, 1, 1)).sum()
+def pre_accept(grid_shape, shape_counts, shapes):
+    """
+    Accept the trivial case where each shape is assumed to be:
 
-    if min_cells_required > np.prod(grid_shape):
-        return False
+    ###
+    ###
+    ###
 
-    # at least this many shapes (bound by 3x3) can be packed on the board
+    and there are enough 3x3 squares to fit the total number of shapes.
+    """
     min_shapes_supported = (grid_shape[0] // 3) * (grid_shape[1] // 3)
-
-    if min_shapes_supported >= sum(shape_counts):
-        return True
-
-    return None
+    return min_shapes_supported >= sum(shape_counts)
 
 
-def valid_grid(grid, shapes):
-    shapes = get_shapes(grid, shapes)
+def pre_reject(grid_shape, shape_counts, shapes):
+    """
+    Reject the trivial case where the total area of the shapes is greater than
+    the total area of the grid.
+    """
+    min_cells_required = (shapes * np.array(shape_counts).reshape(6, 1, 1)).sum()
+    return min_cells_required > np.prod(grid_shape)
+
+
+def valid_grid(grid_shape, shape_counts, shapes):
+    shapes = get_shapes(shape_counts, shapes)
     shapes = [np.array(shape).astype(int) for shape in shapes]
-    grid = np.zeros(grid[0], dtype=int)
+    grid = np.zeros(grid_shape, dtype=int)
     if validate(grid, shapes):
         return True
 
@@ -69,8 +67,8 @@ def get_shape_indices(shape, shape_index):
     shape_indices = []
 
     for jdx in range(shape.sum()):
-        y = z3.BitVec(f"shape_{shape_index}_{jdx}_y", bit_size)
-        x = z3.BitVec(f"shape_{shape_index}_{jdx}_x", bit_size)
+        y = z3.BitVec(f"shape_{shape_index}_{jdx}_y", BIT_SIZE)
+        x = z3.BitVec(f"shape_{shape_index}_{jdx}_x", BIT_SIZE)
 
         shape_indices.append((y, x))
 
@@ -87,7 +85,7 @@ def validate(grid, shapes):
         shape_indices = get_shape_indices(shape, shape_index)
         all_shape_indices.extend(shape_indices)
 
-        constraints.append(get_relative_indices(shape, shape_index, shape_indices))
+        constraints.append(get_relative_indices(shape, shape_indices))
         constraints.extend(get_range_constraints(shape_indices, grid))
 
     for (shape_0_y, shape_0_x), (shape_1_y, shape_1_x) in itertools.combinations(
@@ -100,21 +98,15 @@ def validate(grid, shapes):
     constraints = z3.simplify(constraints)
     solver.add(constraints)
 
-    print("solving")
     return str(solver.check()) == "sat"
 
-    while str(solver.check()) == "sat":
-        model = solver.model()
-        solver.add(all_shape_indices[0] != model[all_shape_indices[0]].as_long())
-        print(model)
 
-
-def get_relative_indices(shape, shape_index, shape_indices):
+def get_relative_indices(shape, shape_indices):
     candidates = []
     shape_indices = shape_indices.copy()
 
     for permutation in permutations(shape):
-        candidates.append(_get_relative_indices(permutation, shape_index))
+        candidates.append(_get_relative_indices(permutation))
 
     base_y, base_x = shape_indices[0]
     constraints = []
@@ -141,10 +133,9 @@ def remove_common(candidates, common):
     return new_candidates
 
 
-def _get_relative_indices(shape, shape_index):
+def _get_relative_indices(shape):
     rebased_coords = np.argwhere(shape == 1)
     rebased_coords -= rebased_coords[0]
-    # return set(tuple(map(int, item)) for item in rebased_coords)
     return list(tuple(map(int, item)) for item in rebased_coords)
 
 
@@ -155,7 +146,6 @@ def get_range_constraints(relative_indices, grid):
         range_constraints.append(z3.And(shape_y >= 0, shape_y < grid.shape[0]))
         range_constraints.append(z3.And(shape_x >= 0, shape_x < grid.shape[1]))
 
-    # return z3.And(range_constraints)
     return range_constraints
 
 
@@ -172,8 +162,7 @@ def permutations(shape):
     yield from shape_dict.values()
 
 
-def get_shapes(grid, shapes):
-    _, required_shapes = grid
+def get_shapes(required_shapes, shapes):
     shapes_ = []
 
     for idx, count in enumerate(required_shapes):
@@ -186,32 +175,29 @@ def get_shapes(grid, shapes):
 
 
 def parse(data):
-    shapes = {}
+    shapes = []
     grids = []
 
     for section in data.split("\n\n"):
         lines = section.split("\n")
 
         if "x" not in section:
-            index = int(re.match(r"(?P<index>\d+)\:$", lines.pop(0)).group("index"))
+            lines.pop(0)
             shape = []
 
             for line in lines:
                 shape.append([char == "#" for char in line])
 
-            shapes[index] = shape
+            shapes.append(np.array(shape))
 
         if "x" in section:
-            for line in section.split("\n"):
-                try:
-                    shape, shapes_ = line.split(":")
-                    shape = tuple(map(int, shape.split("x")))
-                    shapes_ = tuple(map(int, shapes_.strip().split()))
-                    grids.append((shape, shapes_))
-                except:
-                    print(line)
+            for line in section.strip().split("\n"):
+                shape, shapes_ = line.split(":")
+                shape = tuple(map(int, shape.split("x")))
+                shapes_ = tuple(map(int, shapes_.strip().split()))
+                grids.append((shape, shapes_))
 
-    return shapes, grids
+    return np.array(shapes), grids
 
 
 def read_file(filename):
