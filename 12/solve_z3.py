@@ -183,41 +183,56 @@ def get_shapes(required_shapes, shapes):
     """
     Generate a list of the shapes with specified multiplicities.
     """
-    shapes_ = []
+    duplicated_shapes = []
 
     for idx, count in enumerate(required_shapes):
-        jdx = count
+        for _ in range(count):
+            duplicated_shapes.append(shapes[idx])
 
-        for _ in range(jdx):
-            shapes_.append(shapes[idx])
-
-    return shapes_
+    return duplicated_shapes
 
 
 def parse(data):
     shapes = []
-    grids = []
 
     for section in data.split("\n\n"):
-        lines = section.split("\n")
+        lines = section.strip().split("\n")
 
         if "x" not in section:
-            lines.pop(0)
-            shape = []
-
-            for line in lines:
-                shape.append([char == "#" for char in line])
-
-            shapes.append(np.array(shape))
+            shapes.append(parse_shape(lines))
 
         if "x" in section:
-            for line in section.strip().split("\n"):
-                grid_size, shape_counts = line.split(":")
-                grid_size = tuple(map(int, grid_size.split("x")))
-                shape_counts = tuple(map(int, shape_counts.strip().split()))
-                grids.append((grid_size, shape_counts))
+            grids = parse_grids(lines)
 
     return np.array(shapes), grids
+
+
+def parse_shape(lines):
+    """
+    Parse a shape section of input.
+    """
+    lines.pop(0)
+    shape = []
+
+    for line in lines:
+        shape.append([char == "#" for char in line])
+
+    return np.array(shape)
+
+
+def parse_grids(lines):
+    """
+    Parse a grid section of input.
+    """
+    grids = []
+
+    for line in lines:
+        grid_size, shape_counts = line.split(":")
+        grid_size = tuple(map(int, grid_size.split("x")))
+        shape_counts = tuple(map(int, shape_counts.strip().split()))
+        grids.append((grid_size, shape_counts))
+
+    return grids
 
 
 def read_file(filename):
