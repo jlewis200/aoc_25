@@ -90,7 +90,7 @@ def validate(grid, shapes):
 
     for shape_index, shape in enumerate(shapes):
         shape_indices = get_shape_indices(shape, shape_index)
-        constraints.append(get_relative_indices(shape, shape_indices))
+        constraints.append(get_relative_constraints(shape, shape_indices))
         constraints.extend(get_range_constraints(shape_indices, grid))
         all_shape_indices.extend(shape_indices)
 
@@ -117,11 +117,10 @@ def get_unique_coord_constraints(all_shape_indices):
     return constraints
 
 
-def get_relative_indices(shape, shape_indices):
+def get_relative_constraints(shape, shape_indices):
     """
-    Generate the indices of a shape and add the constraints they must be
-    located in a certain offset from a base address.  This provides the
-    inter-coordinate relationship that defines a "shape".
+    Generate the constraints that relate the coordinates of a shape to each
+    other.
 
     Ex:
     shape of: ##
@@ -138,25 +137,22 @@ def get_relative_indices(shape, shape_indices):
 
     the shape has two coordinates, the location of the second coord can be
     specified relative to the first.
-    the constraints of the shape are:
     (
         (coord_0 == base_coord and coord_1 == base_coord + 0,1) or  # horizontal
-        (coord_0 == base_coord and coord_1 == base_coord + 1,0) or  # vertical
+        (coord_0 == base_coord and coord_1 == base_coord + 1,0)     # vertical
     )
     """
-    candidates = []
     shape_indices = shape_indices.copy()
-
-    for permutation in permutations(shape):
-        candidates.append(_get_relative_indices(permutation))
-
     base_y, base_x = shape_indices[0]
     constraints = []
 
-    for candidates_ in candidates:
+    for permutation in permutations(shape):
+        relative_coords = get_relative_coords(permutation)
         candidate_constraints = []
 
-        for (shape_y, shape_x), (delta_y, delta_x) in zip(shape_indices, candidates_):
+        for (shape_y, shape_x), (delta_y, delta_x) in zip(
+            shape_indices, relative_coords
+        ):
             candidate_constraints.append(shape_y == base_y + delta_y)
             candidate_constraints.append(shape_x == base_x + delta_x)
 
@@ -165,7 +161,7 @@ def get_relative_indices(shape, shape_indices):
     return z3.Or(constraints)
 
 
-def _get_relative_indices(shape):
+def get_relative_coords(shape):
     """
     Helper to generate relative indices for a single shape/permutation.
     """
