@@ -11,15 +11,33 @@ def solve(grid):
     print(grid_str(grid))
 
     accessible = []
+    n_accessible = -1
+
+    while len(accessible) > n_accessible:
+        n_accessible = len(accessible)
+        newly_accessible = get_accessible(grid)
+        remove(grid, newly_accessible)
+        accessible.extend(newly_accessible)
+        print(grid_str(grid))
+
+    return len(accessible)
+
+
+def remove(grid, accessible):
+    for coord in accessible:
+        grid[coord] = "."
+
+
+def get_accessible(grid):
+    accessible = []
 
     for y in range(grid.shape[0]):
         for x in range(grid.shape[1]):
             coord = VectorTuple(y, x)
-
             if grid[coord] == "@" and is_accessible(coord, grid):
                 accessible.append(coord)
 
-    return len(accessible)
+    return accessible
 
 
 def is_accessible(coord, grid):
@@ -45,5 +63,5 @@ def main(filename, expected=None):
 
 
 if __name__ == "__main__":
-    main("test_0.txt", 13)
+    main("test_0.txt", 43)
     main("input.txt")

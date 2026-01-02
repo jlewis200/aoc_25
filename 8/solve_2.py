@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import itertools
-import numpy as np
 import pandas as pd
 from networkx.utils import UnionFind
 
@@ -11,14 +10,16 @@ from networkx.utils import UnionFind
 from aoc_data_structures import VectorTuple
 
 
-def solve(boxes, n):
+def solve(boxes):
     distances = get_distances(boxes)
     union_find = UnionFind(boxes)
 
-    for pair in distances.index[:n]:
+    for pair in distances.index:
         union_find.union(*pair)
 
-    return np.prod(sorted(map(len, union_find.to_sets()))[-3:])
+        if len(list(union_find.to_sets())) == 1:
+            box_0, box_1 = pair
+            return box_0[0] * box_1[0]
 
 
 def get_distances(boxes):
@@ -30,7 +31,8 @@ def get_distances(boxes):
         distances[(box_0, box_1)] = distance
 
     distances = pd.Series(distances)
-    return distances.sort_values()
+    distances = distances.sort_values()
+    return distances
 
 
 def parse(lines):
@@ -47,13 +49,13 @@ def read_file(filename):
         return f_in.readlines()
 
 
-def main(filename, expected=None, n=0):
-    result = solve(parse(read_file(filename)), n)
+def main(filename, expected=None):
+    result = solve(parse(read_file(filename)))
     print(result)
     if expected is not None:
         assert result == expected
 
 
 if __name__ == "__main__":
-    main("test_0.txt", 40, 10)
-    main("input.txt", None, 1000)
+    main("test_0.txt", 25272)
+    main("input.txt")
