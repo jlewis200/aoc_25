@@ -16,22 +16,45 @@ from time import time_ns
 from aoc_data_structures import VectorTuple, Interval
 from aoc_data_structures.grid_helpers import parse, grid_str
 
+bit_size = 8
+
 
 def solve(shapes, grids):
     valid_grids = 0
 
     for idx, grid in enumerate(grids):
+        filter_result = pre_filter(grid, shapes)
+        if filter_result is not None:
+            valid_grids += filter_result
+            continue
+
+        print(idx)
         if valid_grid(grid, shapes):
             valid_grids += 1
-        print(idx)
     return valid_grids
+
+
+def pre_filter(grid, shapes):
+    grid_shape, shape_counts = grid
+    shapes = np.array(list(shapes.values()))
+    min_cells_required = (shapes * np.array(shape_counts).reshape(6, 1, 1)).sum()
+
+    if min_cells_required > np.prod(grid_shape):
+        return False
+
+    # at least this many shapes (bound by 3x3) can be packed on the board
+    min_shapes_supported = (grid_shape[0] // 3) * (grid_shape[1] // 3)
+
+    if min_shapes_supported >= sum(shape_counts):
+        return True
+
+    return None
 
 
 def valid_grid(grid, shapes):
     shapes = get_shapes(grid, shapes)
     shapes = [np.array(shape).astype(int) for shape in shapes]
     grid = np.zeros(grid[0], dtype=int)
-
     if validate(grid, shapes):
         return True
 
@@ -46,7 +69,6 @@ def get_shape_indices(shape, shape_index):
     shape_indices = []
 
     for jdx in range(shape.sum()):
-        bit_size = 8
         y = z3.BitVec(f"shape_{shape_index}_{jdx}_y", bit_size)
         x = z3.BitVec(f"shape_{shape_index}_{jdx}_x", bit_size)
 
@@ -69,7 +91,8 @@ def validate(grid, shapes):
         constraints.extend(get_range_constraints(shape_indices, grid))
 
     for (shape_0_y, shape_0_x), (shape_1_y, shape_1_x) in itertools.combinations(
-        all_shape_indices, 2
+        all_shape_indices,
+        2,
     ):
         constraints.append(z3.Or(shape_0_y != shape_1_y, shape_0_x != shape_1_x))
 
@@ -205,4 +228,4 @@ def main(filename, expected=None):
 
 if __name__ == "__main__":
     main("test_0.txt", 2)
-    # main("input.txt")
+    main("input.txt")

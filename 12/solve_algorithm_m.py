@@ -32,24 +32,29 @@ def solve(shapes, grids):
 
 
 def valid_grid(grid_shape, shape_counts, shapes):
-    n_required = (shapes*np.array(shape_counts).reshape(6,1,1)).sum()
-    
-    if n_required > np.prod(grid_shape):
+    # at least this number of cells are required assuming a perfect packing
+    min_cells_required = (shapes * np.array(shape_counts).reshape(6, 1, 1)).sum()
+
+    if min_cells_required > np.prod(grid_shape):
         return False
 
-    if validate(grid_shape, shape_counts, shapes):
-        return True
+    # at least this many shapes (bound by 3x3) can be packed on the board
+    min_shapes_supported = (grid_shape[0] // 3) * (grid_shape[1] // 3)
 
-    return False
+    return min_shapes_supported >= sum(shape_counts) or validate(
+        grid_shape, shape_counts, shapes
+    )
 
 
 def get_indices(shape):
     indices = np.argwhere(shape.flatten() == 1).flatten().tolist()
     return list(map(str, indices))
 
+
 def get_grid_coords(grid_shape):
     grid_coords = list(range(np.prod(grid_shape)))
     return list(map(str, grid_coords))
+
 
 def enumerate_shape_positions(shape_name, shape, grid_shape):
     shape = shape.copy()
@@ -58,26 +63,28 @@ def enumerate_shape_positions(shape_name, shape, grid_shape):
     for permutation in permutations(shape):
         for y, x in itertools.product(range(grid_shape[0]), range(grid_shape[1])):
             grid = np.zeros(grid_shape, dtype=int)
-            
+
             try:
-                grid[y:y+permutation.shape[0], x:x+permutation.shape[1]] += permutation
+                grid[
+                    y : y + permutation.shape[0], x : x + permutation.shape[1]
+                ] += permutation
                 options.append([shape_name] + get_indices(grid))
             except ValueError:
                 pass
 
     return options
 
-    
+
 def validate(grid_shape, shape_counts, shapes):
     shape_names = [f"shape_{idx}" for idx, _ in enumerate(shape_counts)]
     shape_multiplicities = [(shape_count, shape_count) for shape_count in shape_counts]
     grid_coords = get_grid_coords(grid_shape)
     options = []
-    
+
     for shape_name, shape, shape_count in zip(shape_names, shapes, shape_counts):
         if shape_count > 0:
             options.extend(enumerate_shape_positions(shape_name, shape, grid_shape))
-    
+
     root = generate_graph(
         primary_items=shape_names,
         primary_multiplicities=shape_multiplicities,
@@ -92,6 +99,7 @@ def validate(grid_shape, shape_counts, shapes):
         pass
 
     return False
+
 
 def permutations(shape):
     shape_dict = {}

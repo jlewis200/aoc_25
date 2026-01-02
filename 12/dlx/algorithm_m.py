@@ -148,7 +148,6 @@ class AlgorithmM:
         except ValueError:
             pass
 
-
     def min_multiplicity_generator(self, min_column):
         """
         If the slack & bound indicate that we have met the minimum multiplicity,
