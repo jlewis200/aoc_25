@@ -19,22 +19,22 @@ def solve(shapes, grids):
         if pre_reject(grid_shape, shape_counts, shapes):
             continue
 
-        print(idx)
-        if valid_grid(grid_shape, shape_counts, shapes):
-            valid_grids += 1
+        valid_grids += valid_grid(grid_shape, shape_counts, shapes)
 
     return valid_grids
 
 
 def pre_accept(grid_shape, shape_counts, shapes):
     """
-    Accept the trivial case where each shape is assumed to be:
+    All shapes are at most 3x3.  Accept the trivial case where each shape is
+    assumed to be:
 
     ###
     ###
     ###
 
-    and there are enough 3x3 squares to fit the total number of shapes.
+    and there are enough 3x3 squares to fit the total number of shapes.  This
+    signifies that the shapes don't need to be interleaved.
     """
     min_shapes_supported = (grid_shape[0] // 3) * (grid_shape[1] // 3)
     return min_shapes_supported >= sum(shape_counts)
@@ -50,20 +50,19 @@ def pre_reject(grid_shape, shape_counts, shapes):
 
 
 def valid_grid(grid_shape, shape_counts, shapes):
+    """
+    Preprocess the parameters and return true if the grid is valid.
+    """
     shapes = get_shapes(shape_counts, shapes)
     shapes = [np.array(shape).astype(int) for shape in shapes]
     grid = np.zeros(grid_shape, dtype=int)
-    if validate(grid, shapes):
-        return True
-
-    return False
-
-
-def get_indices(shape):
-    return np.argwhere(shape.flatten() == 1).flatten().tolist()
+    return validate(grid, shapes)
 
 
 def get_shape_indices(shape, shape_index):
+    """
+    Get the symbolic indices of a shape.
+    """
     shape_indices = []
 
     for jdx in range(shape.sum()):
@@ -76,6 +75,10 @@ def get_shape_indices(shape, shape_index):
 
 
 def validate(grid, shapes):
+    """
+    Formulate a z3 constraint problem to see if the required number of shapes
+    can/can't be packed in the specified area.
+    """
     solver = z3.Solver()
 
     all_shape_indices = []
@@ -102,6 +105,20 @@ def validate(grid, shapes):
 
 
 def get_relative_indices(shape, shape_indices):
+    """
+    Generate the indices of a shape and add the constraints they must be
+    located in a certain offset from a base address.  This provides the
+    inter-coordinate relationship that defines a "shape".
+
+    Ex:
+    shape of: ##
+    in a 2x2 grid with indices:
+    0,0  0,1
+    1,0  1,1
+
+    the shape indices can be:
+    (0,0 and 0,1) or (1,0 and 1,1) or (0,0 and 1,0) or (0,1 and 1,1)
+    """
     candidates = []
     shape_indices = shape_indices.copy()
 
@@ -120,26 +137,23 @@ def get_relative_indices(shape, shape_indices):
 
         constraints.append(z3.And(candidate_constraints))
 
-    asdf = z3.Or(constraints)
-    return asdf
-
-
-def remove_common(candidates, common):
-    new_candidates = []
-
-    for candidate in candidates:
-        new_candidates.append(candidate - common)
-
-    return new_candidates
+    return z3.Or(constraints)
 
 
 def _get_relative_indices(shape):
+    """
+    Helper to generate relative indices for a single shape/permutation.
+    """
     rebased_coords = np.argwhere(shape == 1)
     rebased_coords -= rebased_coords[0]
     return list(tuple(map(int, item)) for item in rebased_coords)
 
 
 def get_range_constraints(relative_indices, grid):
+    """
+    Generate constraints to restrict every element of a shape to have valid y/x
+    coordinates.
+    """
     range_constraints = []
 
     for shape_y, shape_x in relative_indices:
@@ -150,6 +164,9 @@ def get_range_constraints(relative_indices, grid):
 
 
 def permutations(shape):
+    """
+    Generate and de-duplicate the rotations/reflections of a shape.
+    """
     shape_dict = {}
 
     for _ in range(4):
@@ -163,6 +180,9 @@ def permutations(shape):
 
 
 def get_shapes(required_shapes, shapes):
+    """
+    Generate a list of the shapes with specified multiplicities.
+    """
     shapes_ = []
 
     for idx, count in enumerate(required_shapes):
@@ -192,10 +212,10 @@ def parse(data):
 
         if "x" in section:
             for line in section.strip().split("\n"):
-                shape, shapes_ = line.split(":")
-                shape = tuple(map(int, shape.split("x")))
-                shapes_ = tuple(map(int, shapes_.strip().split()))
-                grids.append((shape, shapes_))
+                grid_size, shape_counts = line.split(":")
+                grid_size = tuple(map(int, grid_size.split("x")))
+                shape_counts = tuple(map(int, shape_counts.strip().split()))
+                grids.append((grid_size, shape_counts))
 
     return np.array(shapes), grids
 
