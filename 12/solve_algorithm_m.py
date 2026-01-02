@@ -18,45 +18,71 @@ from aoc_data_structures.grid_helpers import parse, grid_str
 from dlx.algorithm_m import AlgorithmM
 from dlx.test_algorithm_m import generate_graph
 
-bit_size = 8
-
 
 def solve(shapes, grids):
     valid_grids = 0
 
     for idx, (grid_shape, shape_counts) in enumerate(grids):
-        if valid_grid(grid_shape, shape_counts, shapes):
+        if pre_accept(grid_shape, shape_counts, shapes):
             valid_grids += 1
-        print(idx)
+            continue
+
+        if pre_reject(grid_shape, shape_counts, shapes):
+            continue
+
+        valid_grids += validate(grid_shape, shape_counts, shapes)
+
     return valid_grids
 
 
-def valid_grid(grid_shape, shape_counts, shapes):
-    # at least this number of cells are required assuming a perfect packing
-    min_cells_required = (shapes * np.array(shape_counts).reshape(6, 1, 1)).sum()
+def pre_accept(grid_shape, shape_counts, shapes):
+    """
+    All shapes are at most 3x3.  Accept the trivial case where each shape is
+    assumed to be:
 
-    if min_cells_required > np.prod(grid_shape):
-        return False
+    ###
+    ###
+    ###
 
-    # at least this many shapes (bound by 3x3) can be packed on the board
+    and there are enough 3x3 squares to fit the total number of shapes.  This
+    signifies that the shapes don't need to be interleaved.
+    """
     min_shapes_supported = (grid_shape[0] // 3) * (grid_shape[1] // 3)
+    return min_shapes_supported >= sum(shape_counts)
 
-    return min_shapes_supported >= sum(shape_counts) or validate(
-        grid_shape, shape_counts, shapes
-    )
+
+def pre_reject(grid_shape, shape_counts, shapes):
+    """
+    Reject the trivial case where the total area of the shapes is greater than
+    the total area of the grid.
+    """
+    min_cells_required = (shapes * np.array(shape_counts).reshape(6, 1, 1)).sum()
+    return min_cells_required > np.prod(grid_shape)
 
 
 def get_indices(shape):
+    """
+    Get the flattened indices of a shape/permutation.
+    """
     indices = np.argwhere(shape.flatten() == 1).flatten().tolist()
     return list(map(str, indices))
 
 
 def get_grid_coords(grid_shape):
+    """
+    Generate all coordinate pairs of a grid.
+    """
     grid_coords = list(range(np.prod(grid_shape)))
     return list(map(str, grid_coords))
 
 
 def enumerate_shape_positions(shape_name, shape, grid_shape):
+    """
+    Generate every combination of coordinates that could satisfy a shape:
+    - every rotation
+    - every reflection
+    - every position on the grid
+    """
     shape = shape.copy()
     options = []
 
@@ -76,6 +102,15 @@ def enumerate_shape_positions(shape_name, shape, grid_shape):
 
 
 def validate(grid_shape, shape_counts, shapes):
+    """
+    Formulate the packing problem as a multiple cover with color (MCC) problem.
+
+    primary items:  the 6 shapes
+    primary multiplicities:  the specified shape counts
+    secondary items:  the grid coordinates
+    secondary colors:  implicit unique to force occupation by only one shape (no overlap allowed)
+    options:  the coordinates occupied by the permuataions/locations of the shapes
+    """
     shape_names = [f"shape_{idx}" for idx, _ in enumerate(shape_counts)]
     shape_multiplicities = [(shape_count, shape_count) for shape_count in shape_counts]
     grid_coords = get_grid_coords(grid_shape)
@@ -102,6 +137,9 @@ def validate(grid_shape, shape_counts, shapes):
 
 
 def permutations(shape):
+    """
+    Generate and de-duplicate the rotations/reflections of a shape.
+    """
     shape_dict = {}
 
     for _ in range(4):
@@ -116,31 +154,45 @@ def permutations(shape):
 
 def parse(data):
     shapes = []
-    grids = []
 
     for section in data.split("\n\n"):
-        lines = section.split("\n")
+        lines = section.strip().split("\n")
 
         if "x" not in section:
-            lines.pop(0)
-            shape = []
-
-            for line in lines:
-                shape.append([char == "#" for char in line])
-
-            shapes.append(np.array(shape))
+            shapes.append(parse_shape(lines))
 
         if "x" in section:
-            for line in section.split("\n"):
-                try:
-                    shape, shapes_ = line.split(":")
-                    shape = tuple(map(int, shape.split("x")))
-                    shapes_ = tuple(map(int, shapes_.strip().split()))
-                    grids.append((shape, shapes_))
-                except:
-                    print(line)
+            grids = parse_grids(lines)
 
     return np.array(shapes), grids
+
+
+def parse_shape(lines):
+    """
+    Parse a shape section of input.
+    """
+    lines.pop(0)
+    shape = []
+
+    for line in lines:
+        shape.append([char == "#" for char in line])
+
+    return np.array(shape)
+
+
+def parse_grids(lines):
+    """
+    Parse a grid section of input.
+    """
+    grids = []
+
+    for line in lines:
+        grid_size, shape_counts = line.split(":")
+        grid_size = tuple(map(int, grid_size.split("x")))
+        shape_counts = tuple(map(int, shape_counts.strip().split()))
+        grids.append((grid_size, shape_counts))
+
+    return grids
 
 
 def read_file(filename):
