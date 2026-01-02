@@ -68,7 +68,6 @@ def get_shape_indices(shape, shape_index):
     for jdx in range(shape.sum()):
         y = z3.BitVec(f"shape_{shape_index}_{jdx}_y", BIT_SIZE)
         x = z3.BitVec(f"shape_{shape_index}_{jdx}_x", BIT_SIZE)
-
         shape_indices.append((y, x))
 
     return shape_indices
@@ -78,18 +77,37 @@ def validate(grid, shapes):
     """
     Formulate a z3 constraint problem to see if the required number of shapes
     can/can't be packed in the specified area.
+
+    Each shape must have:
+    - unique coords
+    - coords arranged in one of their specified permuataions
+    - coords within the y/x bound specified by the grid
+
+    z3.sat indicates they can be packed without overlapping
     """
     solver = z3.Solver()
-
     all_shape_indices = []
     constraints = []
 
     for shape_index, shape in enumerate(shapes):
         shape_indices = get_shape_indices(shape, shape_index)
-        all_shape_indices.extend(shape_indices)
-
         constraints.append(get_relative_indices(shape, shape_indices))
         constraints.extend(get_range_constraints(shape_indices, grid))
+        all_shape_indices.extend(shape_indices)
+
+    constraints.extend(get_unique_coord_constraints(all_shape_indices))
+    constraints = z3.And(constraints)
+    constraints = z3.simplify(constraints)
+    solver.add(constraints)
+    return solver.check() == z3.sat
+
+
+def get_unique_coord_constraints(all_shape_indices):
+    """
+    Get constraints to restrict two pairs of coords from sharing both the same
+    x and y values.
+    """
+    constraints = []
 
     for (shape_0_y, shape_0_x), (shape_1_y, shape_1_x) in itertools.combinations(
         all_shape_indices,
@@ -97,11 +115,7 @@ def validate(grid, shapes):
     ):
         constraints.append(z3.Or(shape_0_y != shape_1_y, shape_0_x != shape_1_x))
 
-    constraints = z3.And(constraints)
-    constraints = z3.simplify(constraints)
-    solver.add(constraints)
-
-    return str(solver.check()) == "sat"
+    return constraints
 
 
 def get_relative_indices(shape, shape_indices):
@@ -118,6 +132,16 @@ def get_relative_indices(shape, shape_indices):
 
     the shape indices can be:
     (0,0 and 0,1) or (1,0 and 1,1) or (0,0 and 1,0) or (0,1 and 1,1)
+
+    the shape has two coordinates, the location of the second coord can be
+    specified relative to the first.
+    the constraints of the shape are:
+    (
+        (coord_0 == 0,0 and coord_1 == coord_0 + 0,1) or
+        (coord_0 == 0,0 and coord_1 == coord_0 + 1,0) or
+        (coord_0 == 0,1 and coord_1 == coord_0 + 1,0) or
+        (coord_0 == 1,0 and coord_1 == coord_0 + 0,1)
+    )
     """
     candidates = []
     shape_indices = shape_indices.copy()
